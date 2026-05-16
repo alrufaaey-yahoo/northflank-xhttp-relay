@@ -47,16 +47,188 @@ TARGET_DOMAIN=https://mydomain.com:443
 
 ## 🚀 طريقة النشر على Northflank
 
-### الخطوة 1: ربط GitHub مع Northflank
+### الطريقة 1: النشر بضغطة واحدة عبر Template (مُوصى بها)
+
+> هذه أسهل وأسرع طريقة — تنشئ المشروع والخدمة والمنفذ تلقائياً.
+
+1. سجل الدخول إلى [Northflank](https://app.northflank.com)
+2. اربط حساب GitHub من **Account** → **Git** → **GitHub**
+3. اذهب إلى **Templates** من القائمة الجانبية
+4. اضغط **Create template** → اختر **Code** (أيقونة `<>`)
+5. **احذف أي محتوى موجود** والصق كود الـ Template التالي بالكامل:
+
+<details>
+<summary>📋 اضغط هنا لعرض كود الـ Template</summary>
+
+```json
+{
+  "apiVersion": "v1.2",
+  "name": "XHTTP Relay",
+  "description": "Deploy XHTTP Relay proxy to forward requests to your VPS target domain.",
+  "arguments": {
+    "TARGET_DOMAIN": {
+      "type": "string",
+      "description": "Your VPS target domain (e.g. https://yourvps:443)",
+      "default": "https://yourvps:443",
+      "required": true
+    }
+  },
+  "spec": {
+    "kind": "Workflow",
+    "spec": {
+      "type": "sequential",
+      "steps": [
+        {
+          "kind": "Project",
+          "ref": "project",
+          "spec": {
+            "name": "xhttp-relay",
+            "description": "XHTTP Relay Proxy Service",
+            "region": "europe-west"
+          }
+        },
+        {
+          "kind": "Workflow",
+          "spec": {
+            "type": "sequential",
+            "context": {
+              "projectId": "${refs.project.id}"
+            },
+            "steps": [
+              {
+                "kind": "SecretGroup",
+                "spec": {
+                  "type": "secret",
+                  "secretType": "environment-arguments",
+                  "priority": 10,
+                  "secrets": {
+                    "variables": {
+                      "TARGET_DOMAIN": "${args.TARGET_DOMAIN}",
+                      "PORT": "3000"
+                    },
+                    "files": {}
+                  },
+                  "name": "relay-env",
+                  "restrictions": {
+                    "restricted": false,
+                    "nfObjects": [],
+                    "tags": []
+                  }
+                },
+                "ref": "relay-env"
+              },
+              {
+                "kind": "CombinedService",
+                "spec": {
+                  "deployment": {
+                    "instances": 1,
+                    "storage": {
+                      "ephemeralStorage": {
+                        "storageSize": 1024
+                      },
+                      "shmSize": 64
+                    },
+                    "docker": {
+                      "configType": "default"
+                    }
+                  },
+                  "runtimeEnvironment": {},
+                  "runtimeFiles": {},
+                  "buildArguments": {},
+                  "buildFiles": {},
+                  "billing": {
+                    "deploymentPlan": "nf-compute-10",
+                    "buildPlan": "nf-compute-400-16"
+                  },
+                  "name": "xhttp-relay",
+                  "vcsData": {
+                    "projectType": "github",
+                    "accountLogin": "alrufaaey-yahoo",
+                    "projectUrl": "https://github.com/alrufaaey-yahoo/northflank-xhttp-relay",
+                    "projectBranch": "master"
+                  },
+                  "ports": [
+                    {
+                      "internalPort": 3000,
+                      "protocol": "HTTP",
+                      "name": "p01",
+                      "public": true,
+                      "domains": [],
+                      "security": {
+                        "policies": [],
+                        "credentials": []
+                      },
+                      "disableNfDomain": false
+                    }
+                  ],
+                  "buildSettings": {
+                    "dockerfile": {
+                      "buildEngine": "kaniko",
+                      "useCache": false,
+                      "dockerWorkDir": "/",
+                      "dockerFilePath": "/Dockerfile",
+                      "buildkit": {
+                        "useInternalCache": false,
+                        "internalCacheStorage": 16384
+                      }
+                    }
+                  },
+                  "disabledCI": false,
+                  "buildConfiguration": {
+                    "pathIgnoreRules": [],
+                    "isAllowList": false,
+                    "ciIgnoreFlagsEnabled": false
+                  }
+                },
+                "ref": "xhttp-relay-service"
+              },
+              {
+                "kind": "Condition",
+                "spec": {
+                  "kind": "Service",
+                  "spec": {
+                    "data": {
+                      "serviceId": "${refs.xhttp-relay-service.id}"
+                    },
+                    "type": "running"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+</details>
+
+6. اضغط **Save** لحفظ الـ Template
+7. اضغط **Run template**
+8. عند سؤالك عن `TARGET_DOMAIN`، أدخل عنوان سيرفرك:
+   ```
+   https://yourvps:443
+   ```
+   ⚠️ **استبدل `yourvps` بعنوان IP أو دومين سيرفرك الخاص**
+9. اضغط **Run** وانتظر حتى يكتمل النشر
+10. بعد الاكتمال، اذهب للمشروع → الخدمة → **Ports** للحصول على الرابط العام
+
+---
+
+### الطريقة 2: النشر اليدوي خطوة بخطوة
+
+#### الخطوة 1: ربط GitHub مع Northflank
 1. سجل الدخول إلى [Northflank](https://app.northflank.com)
 2. اذهب إلى **Account** → **Git** → **GitHub**
 3. اربط حساب GitHub الخاص بك
 
-### الخطوة 2: إنشاء مشروع جديد
+#### الخطوة 2: إنشاء مشروع جديد
 1. اضغط **Create new project**
 2. اختر اسماً للمشروع (مثلاً: `xhttp-relay`)
 
-### الخطوة 3: إنشاء Service
+#### الخطوة 3: إنشاء Service
 1. داخل المشروع، اضغط **Add new service** → **Combined service**
 2. اختر **Git repository** → حدد هذا المستودع `northflank-xhttp-relay`
 3. في **Build settings**:
@@ -74,7 +246,7 @@ TARGET_DOMAIN=https://mydomain.com:443
    - **Public**: ✅ مفعّل
 6. اضغط **Create service**
 
-### الخطوة 4: الحصول على الرابط
+#### الخطوة 4: الحصول على الرابط
 بعد اكتمال البناء والنشر، ستجد الرابط العام في قسم **Ports** بصيغة:
 ```
 https://xhttp-relay--xxxxx.addon.code.run
@@ -87,6 +259,7 @@ northflank-xhttp-relay/
 ├── index.js          # الخادم الرئيسي — الريلاي
 ├── package.json      # إعدادات المشروع
 ├── Dockerfile        # ملف Docker للبناء على Northflank
+├── northflank.json   # كود Template للنشر التلقائي
 ├── .dockerignore     # الملفات المستثناة من Docker
 └── README.md         # هذا الملف
 ```

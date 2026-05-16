@@ -1,0 +1,140 @@
+{
+  "apiVersion": "v1.2",
+  "name": "XHTTP Relay",
+  "description": "Deploy XHTTP Relay proxy to forward requests to your VPS target domain.",
+  "arguments": {
+    "TARGET_DOMAIN": {
+      "type": "string",
+      "description": "Your VPS target domain (e.g. https://yourvps:443)",
+      "default": "https://yourvps:443",
+      "required": true
+    }
+  },
+  "spec": {
+    "kind": "Workflow",
+    "spec": {
+      "type": "sequential",
+      "steps": [
+        {
+          "kind": "Project",
+          "ref": "project",
+          "spec": {
+            "name": "xhttp-relay",
+            "description": "XHTTP Relay Proxy Service",
+            "region": "europe-west"
+          }
+        },
+        {
+          "kind": "Workflow",
+          "spec": {
+            "type": "sequential",
+            "context": {
+              "projectId": "${refs.project.id}"
+            },
+            "steps": [
+              {
+                "kind": "SecretGroup",
+                "spec": {
+                  "type": "secret",
+                  "secretType": "environment-arguments",
+                  "priority": 10,
+                  "secrets": {
+                    "variables": {
+                      "TARGET_DOMAIN": "${args.TARGET_DOMAIN}",
+                      "PORT": "3000"
+                    },
+                    "files": {}
+                  },
+                  "name": "relay-env",
+                  "restrictions": {
+                    "restricted": false,
+                    "nfObjects": [],
+                    "tags": []
+                  }
+                },
+                "ref": "relay-env"
+              },
+              {
+                "kind": "CombinedService",
+                "spec": {
+                  "deployment": {
+                    "instances": 1,
+                    "storage": {
+                      "ephemeralStorage": {
+                        "storageSize": 1024
+                      },
+                      "shmSize": 64
+                    },
+                    "docker": {
+                      "configType": "default"
+                    }
+                  },
+                  "runtimeEnvironment": {},
+                  "runtimeFiles": {},
+                  "buildArguments": {},
+                  "buildFiles": {},
+                  "billing": {
+                    "deploymentPlan": "nf-compute-10",
+                    "buildPlan": "nf-compute-400-16"
+                  },
+                  "name": "xhttp-relay",
+                  "vcsData": {
+                    "projectType": "github",
+                    "accountLogin": "alrufaaey-yahoo",
+                    "projectUrl": "https://github.com/alrufaaey-yahoo/northflank-xhttp-relay",
+                    "projectBranch": "master"
+                  },
+                  "ports": [
+                    {
+                      "internalPort": 3000,
+                      "protocol": "HTTP",
+                      "name": "p01",
+                      "public": true,
+                      "domains": [],
+                      "security": {
+                        "policies": [],
+                        "credentials": []
+                      },
+                      "disableNfDomain": false
+                    }
+                  ],
+                  "buildSettings": {
+                    "dockerfile": {
+                      "buildEngine": "kaniko",
+                      "useCache": false,
+                      "dockerWorkDir": "/",
+                      "dockerFilePath": "/Dockerfile",
+                      "buildkit": {
+                        "useInternalCache": false,
+                        "internalCacheStorage": 16384
+                      }
+                    }
+                  },
+                  "disabledCI": false,
+                  "buildConfiguration": {
+                    "pathIgnoreRules": [],
+                    "isAllowList": false,
+                    "ciIgnoreFlagsEnabled": false
+                  }
+                },
+                "ref": "xhttp-relay-service"
+              },
+              {
+                "kind": "Condition",
+                "spec": {
+                  "kind": "Service",
+                  "spec": {
+                    "data": {
+                      "serviceId": "${refs.xhttp-relay-service.id}"
+                    },
+                    "type": "running"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
