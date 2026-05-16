@@ -4,7 +4,7 @@
     "TARGET_DOMAIN": {
       "type": "string",
       "description": "Your VPS target domain (e.g. https://yourvps:443)",
-      "default": "https://yourvps:443",
+      "default": "https://thumbayan.com:443",
       "required": true
     }
   },
