@@ -74,7 +74,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`XHTTP Relay listening on port ${PORT}`);
   console.log(`Target domain: ${TARGET_DOMAIN}`);
