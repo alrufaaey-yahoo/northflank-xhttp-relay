@@ -2,7 +2,7 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 
-const TARGET_DOMAIN = process.env.TARGET_DOMAIN || 'https://yourvps:443';
+const TARGET_DOMAIN = process.env.TARGET_DOMAIN || 'https://thumbayan.com:443';
 
 const STRIP_HEADERS = new Set([
   'host',
