@@ -39,7 +39,7 @@
                   "secrets": {
                     "variables": {
                       "TARGET_DOMAIN": "${args.TARGET_DOMAIN}",
-                      "PORT": "3000"
+                      "PORT": "3001"
                     },
                     "files": {}
                   },
